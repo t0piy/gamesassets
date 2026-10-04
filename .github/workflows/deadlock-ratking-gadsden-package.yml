@@ -1,0 +1,33 @@
+name: Rat King Gadsden source artifacts
+on:
+  push:
+    paths:
+      - 'deadlock-ratking-gadsden/**'
+      - '.github/workflows/deadlock-ratking-gadsden-package.yml'
+  workflow_dispatch:
+
+jobs:
+  source-artifacts:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [historical-original, historical-worn, modern-clean, modern-worn]
+    defaults:
+      run:
+        working-directory: deadlock-ratking-gadsden
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install art build dependencies
+        run: python -m pip install --disable-pip-version-check cairosvg pillow
+      - name: Generate vector-derived raster masters
+        run: python tools/make_assets.py
+      - name: Package ${{ matrix.variant }}
+        run: python tools/package_sources.py '${{ matrix.variant }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ratking-gadsden-${{ matrix.variant }}-sources
+          path: deadlock-ratking-gadsden/dist/ratking-gadsden-${{ matrix.variant }}-sources.zip
+          if-no-files-found: error
