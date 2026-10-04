@@ -6,8 +6,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 VARIANT_SOURCE = {
-    "original-clean": "gadsden-historical-original.png",
-    "original-worn": "gadsden-historical-original.png",
+    "original-clean": "gadsden-accurate-original.png",
+    "original-worn": "gadsden-accurate-original.png",
     "modern-clean": "gadsden-original.png",
     "modern-worn": "gadsden-original.png",
     "join-or-die-clean": "join-or-die-original.png",
