@@ -18,11 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT / "assets" / "source"
 PRE_DIR = ROOT / "assets" / "previews"
 
-HISTORICAL_GADSDEN_SOURCE = SRC_DIR / "gadsden-historical-original.png"
+ORIGINAL_GADSDEN_SOURCE = SRC_DIR / "gadsden-accurate-original.png"
 MODERN_GADSDEN_SOURCE = SRC_DIR / "gadsden-original.png"
 JOIN_SOURCE = SRC_DIR / "join-or-die-original.png"
 
-MASTER_SIZE = (4096, 2731)  # near-exact 3:2 flag canvas
+MASTER_SIZE = (4096, 2731)
 PREVIEW_SIZE = (1600, 1067)
 
 
@@ -63,26 +63,12 @@ def contain_on_canvas(
     )
 
 
-def prepare_historical_gadsden(img: Image.Image) -> Image.Image:
-    """Turn the 1898 public-domain raster reproduction into an ochre cloth treatment."""
-    src = ImageOps.autocontrast(ImageOps.grayscale(img.convert("RGB")), cutoff=0.4)
-
-    # Keep every historical raster detail, but color-map the paper/ink so the
-    # result behaves like an actual cloth banner rather than a pasted newspaper.
-    colorized = ImageOps.colorize(
-        src,
-        black="#2a2118",
-        white="#d1aa38",
-        mid="#8f6b29",
-        blackpoint=0,
-        whitepoint=255,
-        midpoint=140,
-    )
+def prepare_original_gadsden(img: Image.Image) -> Image.Image:
+    """Preserve the earlier 'Gadsden Flag (Accurate)' appearance from Commons."""
     return contain_on_canvas(
-        colorized,
-        background=(209, 170, 56),
-        sharpen_radius=0.85,
-        sharpen_percent=78,
+        img,
+        sharpen_radius=0.75,
+        sharpen_percent=70,
     )
 
 
@@ -97,7 +83,6 @@ def prepare_modern_gadsden(img: Image.Image) -> Image.Image:
 
 
 def prepare_join_or_die(img: Image.Image) -> Image.Image:
-    """Preserve the complete archival print; pad to 3:2 instead of cropping it."""
     return contain_on_canvas(
         img,
         sharpen_radius=0.7,
@@ -116,8 +101,6 @@ def add_game_wear(
     rng = random.Random(seed)
     base = img.convert("RGB")
 
-    # Broad low-frequency cloth lighting. Final build also inherits the actual
-    # Deadlock banner luminance, so this pass deliberately stays restrained.
     noise_small = Image.new("L", (128, 86))
     px = noise_small.load()
     for y in range(noise_small.height):
@@ -175,7 +158,7 @@ def save_variant(name: str, image: Image.Image) -> None:
 
 def main() -> None:
     required = (
-        HISTORICAL_GADSDEN_SOURCE,
+        ORIGINAL_GADSDEN_SOURCE,
         MODERN_GADSDEN_SOURCE,
         JOIN_SOURCE,
     )
@@ -187,23 +170,19 @@ def main() -> None:
             + "\nrun tools/fetch_source.py first"
         )
 
-    original_clean = prepare_historical_gadsden(
-        Image.open(HISTORICAL_GADSDEN_SOURCE)
-    )
+    original_clean = prepare_original_gadsden(Image.open(ORIGINAL_GADSDEN_SOURCE))
     original_worn = add_game_wear(
         original_clean,
-        seed=1898,
-        grime=(62, 43, 25),
-        fiber=(226, 194, 103),
-        color_strength=0.91,
+        seed=1775,
+        grime=(67, 47, 24),
+        fiber=(232, 204, 105),
+        color_strength=0.93,
     )
 
-    modern_clean = prepare_modern_gadsden(
-        Image.open(MODERN_GADSDEN_SOURCE)
-    )
+    modern_clean = prepare_modern_gadsden(Image.open(MODERN_GADSDEN_SOURCE))
     modern_worn = add_game_wear(
         modern_clean,
-        seed=1775,
+        seed=1776,
         grime=(74, 48, 21),
         fiber=(246, 224, 132),
         color_strength=0.94,
