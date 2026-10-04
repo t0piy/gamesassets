@@ -11,7 +11,7 @@ The `original-*` variants use the same **Gadsden Flag (Accurate)** appearance th
 - Source SHA-1: `5ee2386154327e7be90b7ff48134fd4a0e5ad092`
 - Author: BlinxTheKitty
 - Licensing: CC0 1.0 / public-domain dedication.
-- Raster actually downloaded by this project: the **3,840 × 2,412 PNG preview rendered by Wikimedia Commons**.
+- Raster actually downloaded by this project: the **3,840 × 2,413 PNG preview rendered by Wikimedia Commons**.
 
 The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` asks the Commons API for its official 3,840-pixel PNG preview and validates the source metadata plus the downloaded PNG dimensions/checksum.
 
