@@ -2,20 +2,20 @@
 
 This project is raster-only. It does not redraw any flag and contains no SVG asset pipeline.
 
-## Original / historical Gadsden raster
+## Original / accurate Gadsden raster
 
-The `original-*` variants use **Gadsden Flag.png**, a raster reproduction sourced from *The Evening Tribune*, 11 February 1898, hosted by Wikimedia Commons.
+The `original-*` variants use the same **Gadsden Flag (Accurate)** appearance that the project used as its first historical reference.
 
-- File page: https://commons.wikimedia.org/wiki/File:Gadsden_Flag.png
-- Commons title: `File:Gadsden Flag.png`
-- Published dimensions: 1,140 × 1,466
-- Source date: 11 February 1898
-- Source publication: *The Evening Tribune*
-- Licensing on Commons: public domain in the United States (pre-1931 publication).
+- File page: https://commons.wikimedia.org/wiki/File:Gadsden_Flag_(Accurate).svg
+- Commons source dimensions: 1,614 × 1,014
+- Source SHA-1: `5ee2386154327e7be90b7ff48134fd4a0e5ad092`
+- Author: BlinxTheKitty
+- Licensing: CC0 1.0 / public-domain dedication.
+- Raster actually downloaded by this project: the **3,840 × 2,412 PNG preview rendered by Wikimedia Commons**.
 
-The build fetcher queries Wikimedia Commons' image-info API for the current original-file URL, dimensions and SHA-1, then verifies the downloaded raster byte-for-byte against that SHA-1.
+The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` asks the Commons API for its official 3,840-pixel PNG preview and validates the source metadata plus the downloaded PNG dimensions/checksum.
 
-Because the historical raster is an archival reproduction rather than a modern rectangular flag render, the clean treatment preserves all source detail but color-maps the paper and ink into ochre cloth/brown ink before placing it on the 3:2 banner canvas. No vector reconstruction is involved.
+This restores the earlier original/accurate visual while keeping the entire mod pipeline raster-only.
 
 ## Modern Gadsden raster
 
@@ -24,8 +24,6 @@ The `modern-*` variants use the exact raster image published as **Gadsden flag l
 - File page: https://commons.wikimedia.org/wiki/File:Gadsden_flag_large.png
 - Published dimensions: 900 × 600
 - Pinned SHA-1: `ad1c2fa16219d59b975c29a8e290bc9c1587ab68`
-- Original upload: Vikrum~commonswiki; later raster revision by Ptkfgs
-- Licensing shown on the file page: GFDL and CC BY-SA 2.0 / 3.0.
 
 ## Join, or Die raster
 
@@ -34,20 +32,15 @@ The `join-or-die-*` variants use the archival lossless restoration **Benjamin Fr
 - File page: https://commons.wikimedia.org/wiki/File:Benjamin_Franklin_-_Join_or_Die.png
 - Published dimensions: 3,740 × 2,696
 - Pinned SHA-1: `7a79e6e41841667436d1ec2174b9caaa277248ad`
-- Date of original political cartoon: 9 May 1754
-- Attribution on Commons: Benjamin Franklin / restoration uploaded by Adam Cuerden
-- Licensing: public domain / Public Domain Mark on the Commons file page.
-
-The Join, or Die image is kept whole when mapped to the 3:2 source canvas. The pipeline pads it using a color sampled from the archival paper rather than cropping the snake, labels, or title.
+- Licensing: public domain / Public Domain Mark.
 
 ## Raster treatment
 
-`tools/fetch_source.py` verifies each raster against Wikimedia Commons metadata before it is accepted.
+`tools/fetch_source.py` validates each source against Wikimedia Commons metadata before it is accepted.
 
 `tools/prepare_rasters.py` only performs raster operations:
 
 - high-quality Lanczos resampling;
-- archival paper/ink color mapping for the original Gadsden reproduction;
 - mild sharpening appropriate to each source;
 - optional restrained cloth/grime treatment for every `*-worn` variant.
 
