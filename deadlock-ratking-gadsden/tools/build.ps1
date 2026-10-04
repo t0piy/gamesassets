@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('modern-clean','modern-worn')]
+    [ValidateSet('modern-clean','modern-worn','join-or-die-clean','join-or-die-worn')]
     [string]$Variant = 'modern-worn',
     [Parameter(Mandatory=$true)][string]$DeadlockDir,
     [Parameter(Mandatory=$true)][string]$Source2ViewerCli,
@@ -130,7 +130,7 @@ $LooseDest = Join-Path $LooseRoot $TexturePath
 New-Item -ItemType Directory -Force -Path (Split-Path $LooseDest) | Out-Null
 Copy-Item $Compiled.FullName $LooseDest -Force
 
-$LooseZip = Join-Path $Dist "ratking-gadsden-$Variant-loose.zip"
+$LooseZip = Join-Path $Dist "ratking-banner-$Variant-loose.zip"
 if (Test-Path $LooseZip) { Remove-Item $LooseZip -Force }
 Compress-Archive -Path (Join-Path $LooseRoot '*') -DestinationPath $LooseZip
 Write-Host "Built loose replacement: $LooseZip" -ForegroundColor Green
@@ -144,7 +144,7 @@ if (-not $NoPack) {
         & $VpkExe.FullName $PackRoot
         $packed = "$PackRoot.vpk"
         if (Test-Path $packed) {
-            $FinalVpk = Join-Path $Dist "ratking-gadsden-$Variant.vpk"
+            $FinalVpk = Join-Path $Dist "ratking-banner-$Variant.vpk"
             Move-Item -Force $packed $FinalVpk
             Write-Host "Built VPK: $FinalVpk" -ForegroundColor Green
         } else {
@@ -155,4 +155,4 @@ if (-not $NoPack) {
     }
 }
 
-Set-Content -Encoding utf8 (Join-Path $Dist "ratking-gadsden-$Variant-target.txt") $TexturePath
+Set-Content -Encoding utf8 (Join-Path $Dist "ratking-banner-$Variant-target.txt") $TexturePath
