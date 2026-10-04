@@ -26,6 +26,7 @@ SOURCES = {
         "source_dimensions": (1614, 1014),
         "source_sha1": "5ee2386154327e7be90b7ff48134fd4a0e5ad092",
         "thumb_width": 3840,
+        "api_raster_dimensions": (3840, 2412),
         "raster_dimensions": (3840, 2413),
         # raster_sha1 is pinned after the rendered PNG has been validated in CI.
     },
@@ -147,13 +148,14 @@ def fetch(name: str, force: bool = False) -> None:
         download_url = meta["url"]
         actual_raster_dims = source_dims
 
-    expected_raster_dims = tuple(spec["raster_dimensions"])
-    if actual_raster_dims != expected_raster_dims:
+    expected_api_raster_dims = tuple(spec.get("api_raster_dimensions", spec["raster_dimensions"]))
+    if actual_raster_dims != expected_api_raster_dims:
         raise SystemExit(
-            f"{name}: Commons raster dimensions changed: got {actual_raster_dims}, "
-            f"expected {expected_raster_dims}"
+            f"{name}: Commons raster metadata changed: got {actual_raster_dims}, "
+            f"expected {expected_api_raster_dims}"
         )
 
+    expected_raster_dims = tuple(spec["raster_dimensions"])
     pinned_raster_sha1 = spec.get("raster_sha1")
     dest.parent.mkdir(parents=True, exist_ok=True)
 
