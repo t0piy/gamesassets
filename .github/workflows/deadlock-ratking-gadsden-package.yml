@@ -15,10 +15,14 @@ permissions:
   actions: write
 
 jobs:
-  cleanup-old-artifacts:
+  build-artifacts:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deadlock-ratking-gadsden
     steps:
       - name: Remove previous Rat King banner artifacts
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -29,37 +33,72 @@ jobs:
             gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
           done
 
-  raster-artifacts:
-    needs: cleanup-old-artifacts
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        variant:
-          - original-clean
-          - original-worn
-          - modern-clean
-          - modern-worn
-          - join-or-die-clean
-          - join-or-die-worn
-    defaults:
-      run:
-        working-directory: deadlock-ratking-gadsden
-    steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install raster processing dependency
         run: python -m pip install --disable-pip-version-check pillow
+
       - name: Fetch and verify three raster originals
         run: python tools/fetch_source.py
+
       - name: Prepare six 4096px raster variants
         run: python tools/prepare_rasters.py
-      - name: Package ${{ matrix.variant }}
-        run: python tools/package_sources.py '${{ matrix.variant }}'
-      - uses: actions/upload-artifact@v4
+
+      - name: Package all six variants
+        run: |
+          for variant in \
+            original-clean \
+            original-worn \
+            modern-clean \
+            modern-worn \
+            join-or-die-clean \
+            join-or-die-worn
+          do
+            python tools/package_sources.py "$variant"
+          done
+
+      - name: Upload original clean
+        uses: actions/upload-artifact@v4
         with:
-          name: ratking-banner-${{ matrix.variant }}-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-${{ matrix.variant }}-sources.zip
+          name: ratking-banner-original-clean-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-original-clean-sources.zip
+          if-no-files-found: error
+
+      - name: Upload original worn
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-original-worn-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-original-worn-sources.zip
+          if-no-files-found: error
+
+      - name: Upload modern clean
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-modern-clean-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-modern-clean-sources.zip
+          if-no-files-found: error
+
+      - name: Upload modern worn
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-modern-worn-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-modern-worn-sources.zip
+          if-no-files-found: error
+
+      - name: Upload Join or Die clean
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-join-or-die-clean-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-join-or-die-clean-sources.zip
+          if-no-files-found: error
+
+      - name: Upload Join or Die worn
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-join-or-die-worn-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-join-or-die-worn-sources.zip
           if-no-files-found: error
