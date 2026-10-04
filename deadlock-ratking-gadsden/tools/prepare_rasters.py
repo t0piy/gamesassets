@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare high-resolution raster variants from exact downloaded source images."""
+"""Prepare six high-resolution raster variants from three exact source images."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,10 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT / "assets" / "source"
 PRE_DIR = ROOT / "assets" / "previews"
 
-GADSDEN_SOURCE = SRC_DIR / "gadsden-original.png"
+HISTORICAL_GADSDEN_SOURCE = SRC_DIR / "gadsden-historical-original.png"
+MODERN_GADSDEN_SOURCE = SRC_DIR / "gadsden-original.png"
 JOIN_SOURCE = SRC_DIR / "join-or-die-original.png"
 
-MASTER_SIZE = (4096, 2731)   # near-exact 3:2 flag canvas
+MASTER_SIZE = (4096, 2731)  # near-exact 3:2 flag canvas
 PREVIEW_SIZE = (1600, 1067)
 
 
@@ -39,7 +40,53 @@ def border_color(img: Image.Image) -> tuple[int, int, int]:
     return tuple(int(sum(m[i] for m in means) / len(means)) for i in range(3))
 
 
-def prepare_gadsden(img: Image.Image) -> Image.Image:
+def contain_on_canvas(
+    img: Image.Image,
+    *,
+    background: tuple[int, int, int] | None = None,
+    sharpen_radius: float = 0.7,
+    sharpen_percent: int = 60,
+) -> Image.Image:
+    src = img.convert("RGB")
+    contained = ImageOps.contain(src, MASTER_SIZE, method=Image.Resampling.LANCZOS)
+    bg = background or border_color(src)
+    canvas = Image.new("RGB", MASTER_SIZE, bg)
+    x = (MASTER_SIZE[0] - contained.width) // 2
+    y = (MASTER_SIZE[1] - contained.height) // 2
+    canvas.paste(contained, (x, y))
+    return canvas.filter(
+        ImageFilter.UnsharpMask(
+            radius=sharpen_radius,
+            percent=sharpen_percent,
+            threshold=2,
+        )
+    )
+
+
+def prepare_historical_gadsden(img: Image.Image) -> Image.Image:
+    """Turn the 1898 public-domain raster reproduction into an ochre cloth treatment."""
+    src = ImageOps.autocontrast(ImageOps.grayscale(img.convert("RGB")), cutoff=0.4)
+
+    # Keep every historical raster detail, but color-map the paper/ink so the
+    # result behaves like an actual cloth banner rather than a pasted newspaper.
+    colorized = ImageOps.colorize(
+        src,
+        black="#2a2118",
+        white="#d1aa38",
+        mid="#8f6b29",
+        blackpoint=0,
+        whitepoint=255,
+        midpoint=0.55,
+    )
+    return contain_on_canvas(
+        colorized,
+        background=(209, 170, 56),
+        sharpen_radius=0.85,
+        sharpen_percent=78,
+    )
+
+
+def prepare_modern_gadsden(img: Image.Image) -> Image.Image:
     out = ImageOps.fit(
         img.convert("RGB"),
         MASTER_SIZE,
@@ -51,13 +98,11 @@ def prepare_gadsden(img: Image.Image) -> Image.Image:
 
 def prepare_join_or_die(img: Image.Image) -> Image.Image:
     """Preserve the complete archival print; pad to 3:2 instead of cropping it."""
-    src = img.convert("RGB")
-    contained = ImageOps.contain(src, MASTER_SIZE, method=Image.Resampling.LANCZOS)
-    canvas = Image.new("RGB", MASTER_SIZE, border_color(src))
-    x = (MASTER_SIZE[0] - contained.width) // 2
-    y = (MASTER_SIZE[1] - contained.height) // 2
-    canvas.paste(contained, (x, y))
-    return canvas.filter(ImageFilter.UnsharpMask(radius=0.7, percent=60, threshold=2))
+    return contain_on_canvas(
+        img,
+        sharpen_radius=0.7,
+        sharpen_percent=60,
+    )
 
 
 def add_game_wear(
@@ -129,7 +174,12 @@ def save_variant(name: str, image: Image.Image) -> None:
 
 
 def main() -> None:
-    missing = [p for p in (GADSDEN_SOURCE, JOIN_SOURCE) if not p.exists()]
+    required = (
+        HISTORICAL_GADSDEN_SOURCE,
+        MODERN_GADSDEN_SOURCE,
+        JOIN_SOURCE,
+    )
+    missing = [p for p in required if not p.exists()]
     if missing:
         raise SystemExit(
             "missing raster source(s):\n"
@@ -137,9 +187,22 @@ def main() -> None:
             + "\nrun tools/fetch_source.py first"
         )
 
-    gadsden_clean = prepare_gadsden(Image.open(GADSDEN_SOURCE))
-    gadsden_worn = add_game_wear(
-        gadsden_clean,
+    original_clean = prepare_historical_gadsden(
+        Image.open(HISTORICAL_GADSDEN_SOURCE)
+    )
+    original_worn = add_game_wear(
+        original_clean,
+        seed=1898,
+        grime=(62, 43, 25),
+        fiber=(226, 194, 103),
+        color_strength=0.91,
+    )
+
+    modern_clean = prepare_modern_gadsden(
+        Image.open(MODERN_GADSDEN_SOURCE)
+    )
+    modern_worn = add_game_wear(
+        modern_clean,
         seed=1775,
         grime=(74, 48, 21),
         fiber=(246, 224, 132),
@@ -155,8 +218,10 @@ def main() -> None:
         color_strength=0.965,
     )
 
-    save_variant("modern-clean", gadsden_clean)
-    save_variant("modern-worn", gadsden_worn)
+    save_variant("original-clean", original_clean)
+    save_variant("original-worn", original_worn)
+    save_variant("modern-clean", modern_clean)
+    save_variant("modern-worn", modern_worn)
     save_variant("join-or-die-clean", join_clean)
     save_variant("join-or-die-worn", join_worn)
 
