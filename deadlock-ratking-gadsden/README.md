@@ -21,7 +21,7 @@ Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It
 
 The project deliberately uses raster originals instead of SVG reconstruction.
 
-- **Original Gadsden:** the 3840×2412 PNG rendered by Wikimedia Commons for `Gadsden Flag (Accurate)`, matching the original/accurate design used earlier.
+- **Original Gadsden:** the 3840×2413 PNG rendered by Wikimedia Commons for `Gadsden Flag (Accurate)`, matching the original/accurate design used earlier.
 - **Modern Gadsden:** `Gadsden flag large.png`, the existing modern/common raster.
 - **Join, or Die:** `Benjamin Franklin - Join or Die.png`, a 3740×2696 archival lossless restoration.
 
