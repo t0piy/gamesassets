@@ -13,7 +13,7 @@ Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It
 | `modern-clean` | Modern/common high-contrast Gadsden treatment | SVG + 4096px PNG |
 | `modern-worn` | Modern treatment with in-world wear; **recommended default** | SVG + 4096px PNG |
 
-Previews live in [`assets/previews`](assets/previews). Master artwork lives in [`assets/source`](assets/source). The SVGs are the canonical sources so the art can be rasterized at the exact texture resolution without quality loss.
+Canonical SVG masters are generated into `assets/source` by `tools/make_assets.py`. PNG previews and 4096px raster masters are generated reproducibly from those vectors, so Git stays lightweight while CI artifacts still contain lossless vector sources plus high-resolution rasters.
 
 ## Why there is no Valve texture in this repo
 
@@ -28,7 +28,7 @@ Requirements:
 - Deadlock installed locally.
 - [Source 2 Viewer / ValveResourceFormat CLI](https://s2v.app/) (`Source2Viewer-CLI.exe`).
 - Reduced CSDK 12 with `resourcecompiler.exe`; `vpk.exe` is optional but enables a `.vpk` output.
-- Python 3 with Pillow (`py -m pip install pillow`).
+- Python 3 with CairoSVG + Pillow (`py -m pip install cairosvg pillow`).
 
 Example:
 
@@ -40,7 +40,7 @@ pwsh -File .\tools\build.ps1 `
   -CsdkDir 'C:\Reduced_CSDK_12'
 ```
 
-The script searches `models/heroes_wip/ratking/` for candidate `.vtex_c` files. If it cannot choose the banner texture unambiguously, it stops and prints the candidates instead of guessing. Re-run with the exact path:
+The build script generates the chosen vector/raster source automatically if it is not present, then searches `models/heroes_wip/ratking/` for candidate `.vtex_c` files. If it cannot choose the banner texture unambiguously, it stops and prints candidates instead of guessing. Re-run with the exact path:
 
 ```powershell
 pwsh -File .\tools\build.ps1 ... -TexturePath 'models/heroes_wip/ratking/.../banner.vtex_c'
@@ -60,7 +60,7 @@ If a Deadlock update changes the Rat King banner asset, rebuild: the discovery s
 
 ## GitHub build artifacts
 
-The GitHub Actions workflow creates one artifact per variant containing the high-quality SVG, 4096px PNG, preview, license and source notes. A fully compiled Deadlock VPK is intentionally a **local** build because it depends on your installed Deadlock VPK and Reduced CSDK toolchain; the workflow does not fake or redistribute those proprietary inputs.
+The root workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` creates one artifact per variant containing the high-quality SVG, 4096px PNG, preview, license and source notes. A fully compiled Deadlock VPK is intentionally a **local** build because it depends on your installed Deadlock VPK and Reduced CSDK toolchain; CI does not fake or redistribute those proprietary inputs.
 
 ## Artwork / fidelity
 
@@ -71,18 +71,34 @@ See [`SOURCES.md`](SOURCES.md) for references and licensing notes.
 ## Project layout
 
 ```text
-assets/
-  previews/                 # lightweight previews
-  source/                   # canonical SVG + 4096px raster variants
 tools/
   build.ps1                 # discover → extract → compose → compile → VPK
   compose_texture.py        # preserves alpha + cloth/wear shading
-  make_assets.py            # reproducible source-art generator
+  make_assets.py            # generates 4 SVGs + 4K PNGs + previews
   package_sources.py        # CI artifact packager
-.github/workflows/
-  package.yml               # one source artifact per variant
 SOURCES.md
 LICENSE
+mod.json
+```
+
+Generated locally/CI:
+
+```text
+assets/
+  source/
+    historical-original.svg
+    historical-original-4096.png
+    historical-worn.svg
+    historical-worn-4096.png
+    modern-clean.svg
+    modern-clean-4096.png
+    modern-worn.svg
+    modern-worn-4096.png
+  previews/
+    historical-original.png
+    historical-worn.png
+    modern-clean.png
+    modern-worn.png
 ```
 
 ## Disclaimer
