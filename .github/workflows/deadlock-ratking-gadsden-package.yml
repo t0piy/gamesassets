@@ -1,4 +1,4 @@
-name: Rat King Gadsden raster artifacts
+name: Rat King Revolutionary Banner raster artifacts
 on:
   push:
     paths:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ratking-gadsden-raster-artifacts
+  group: ratking-revolutionary-banner-raster-artifacts
   cancel-in-progress: true
 
 permissions:
@@ -18,11 +18,12 @@ jobs:
   cleanup-old-artifacts:
     runs-on: ubuntu-latest
     steps:
-      - name: Remove previous Rat King artifacts
+      - name: Remove previous Rat King banner artifacts
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100"             --jq '.artifacts[] | select(.name | startswith("ratking-gadsden-")) | .id' |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select((.name | startswith("ratking-gadsden-")) or (.name | startswith("ratking-banner-"))) | .id' |
           while read -r artifact_id; do
             [ -z "$artifact_id" ] && continue
             gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
@@ -32,8 +33,13 @@ jobs:
     needs: cleanup-old-artifacts
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        variant: [modern-clean, modern-worn]
+        variant:
+          - modern-clean
+          - modern-worn
+          - join-or-die-clean
+          - join-or-die-worn
     defaults:
       run:
         working-directory: deadlock-ratking-gadsden
@@ -44,14 +50,14 @@ jobs:
           python-version: '3.12'
       - name: Install raster processing dependency
         run: python -m pip install --disable-pip-version-check pillow
-      - name: Fetch and verify original raster
+      - name: Fetch and verify raster originals
         run: python tools/fetch_source.py
-      - name: Prepare 4096px raster variants
+      - name: Prepare four 4096px raster variants
         run: python tools/prepare_rasters.py
       - name: Package ${{ matrix.variant }}
         run: python tools/package_sources.py '${{ matrix.variant }}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ratking-gadsden-${{ matrix.variant }}-sources
-          path: deadlock-ratking-gadsden/dist/ratking-gadsden-${{ matrix.variant }}-sources.zip
+          name: ratking-banner-${{ matrix.variant }}-sources
+          path: deadlock-ratking-gadsden/dist/ratking-banner-${{ matrix.variant }}-sources.zip
           if-no-files-found: error
