@@ -1,20 +1,24 @@
 # Art and technical references
 
-The bundled flag artwork is an original vector reconstruction made for this mod. It does **not** redistribute Valve's Rat King texture.
+## Flag raster
 
-## Flag references
+The mod uses the exact raster image published as **Gadsden flag large.png** on Wikimedia Commons.
 
-- **Historical / original-inspired:** Wikimedia Commons, *Gadsden Flag (Accurate).svg*, by BlinxTheKitty, CC0 1.0. Commons describes it as a likely accurate depiction based on vintage references.
-  https://commons.wikimedia.org/wiki/File:Gadsden_Flag_(Accurate).svg
-- **Modern / common reconstruction:** Wikimedia Commons, *Gadsden flag.svg*. The underlying 1775 design is public domain; this particular SVG page lists its vector-file licensing separately.
-  https://commons.wikimedia.org/wiki/File:Gadsden_flag.svg
+- File page: https://commons.wikimedia.org/wiki/File:Gadsden_flag_large.png
+- Direct raster: https://upload.wikimedia.org/wikipedia/commons/a/a1/Gadsden_flag_large.png
+- Published dimensions: 900 × 600
+- Published SHA-1: `ad1c2fa16219d59b975c29a8e290bc9c1587ab68`
+- Original upload: Vikrum~commonswiki; later raster revision by Ptkfgs
+- Licensing shown on the file page: GFDL and CC BY-SA 2.0 / 3.0; the underlying historical design is also marked public domain.
 
-The repository's own SVG paths were redrawn rather than copied from the Commons SVG files, allowing the mod source itself to remain under the repository license below.
+`tools/fetch_source.py` verifies the SHA-1 before the image is accepted. The project does not redraw the flag. The 4096px clean and worn files are raster treatments derived from this exact source.
+
+The historical variants were intentionally dropped because the raster-only historical references available for this pass were not strong enough to match the game's texture quality.
 
 ## Deadlock / Source 2 references
 
-- Rat King assets are currently under `models/heroes_wip/ratking/` in Deadlock's VPK; the banner texture is in its `materials` subtree. The build script discovers the exact current `.vtex_c` path instead of hard-coding a filename that may change during Deadlock development.
-- ValveResourceFormat / Source 2 Viewer CLI is used to list/decompile the VPK locally.
-- Reduced CSDK 12 / `resourcecompiler.exe` is used to compile the replacement VTEX locally.
+- Rat King assets are under `models/heroes_wip/ratking/` in Deadlock's VPK; the build script discovers the current banner texture instead of hard-coding a filename that may change during development.
+- ValveResourceFormat / Source 2 Viewer CLI is used to list and extract the current local asset.
+- Reduced CSDK 12 / `resourcecompiler.exe` is used to compile the replacement.
 
-No game asset is committed to this repository. The build process requires your legally installed local Deadlock files.
+No Valve texture is committed to this repository. The build process requires the user's own installed Deadlock files.
