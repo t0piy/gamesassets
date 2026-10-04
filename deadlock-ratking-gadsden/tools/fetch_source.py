@@ -57,7 +57,7 @@ def commons_metadata(title: str) -> dict:
         f"{COMMONS_API}?{params}",
         headers={"User-Agent": "RatKing-Revolutionary-Banners/3.0 (+GitHub Actions)"},
     )
-    with urllib.request.urlopen(req, timeout=120) as response:
+    with urlopen_with_retry(req, timeout=120) as response:
         data = json.load(response)
 
     pages = data.get("query", {}).get("pages", [])
@@ -71,6 +71,22 @@ def commons_metadata(title: str) -> dict:
         "width": int(info["width"]),
         "height": int(info["height"]),
     }
+
+
+def urlopen_with_retry(req: urllib.request.Request, timeout: int):
+    last_error = None
+    for attempt in range(5):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            if exc.code != 429 or attempt == 4:
+                raise
+            retry_after = exc.headers.get("Retry-After")
+            delay = int(retry_after) if retry_after and retry_after.isdigit() else (2 ** attempt)
+            print(f"HTTP 429 from Wikimedia; retrying in {delay}s...")
+            time.sleep(delay)
+    raise last_error
 
 
 def fetch(name: str, force: bool = False) -> None:
@@ -111,7 +127,7 @@ def fetch(name: str, force: bool = False) -> None:
         meta["url"],
         headers={"User-Agent": "RatKing-Revolutionary-Banners/3.0 (+GitHub Actions)"},
     )
-    with urllib.request.urlopen(req, timeout=180) as response, dest.open("wb") as out:
+    with urlopen_with_retry(req, timeout=180) as response, dest.open("wb") as out:
         while True:
             chunk = response.read(1024 * 1024)
             if not chunk:
