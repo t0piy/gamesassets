@@ -76,7 +76,7 @@ def prepare_historical_gadsden(img: Image.Image) -> Image.Image:
         mid="#8f6b29",
         blackpoint=0,
         whitepoint=255,
-        midpoint=0.55,
+        midpoint=140,
     )
     return contain_on_canvas(
         colorized,
