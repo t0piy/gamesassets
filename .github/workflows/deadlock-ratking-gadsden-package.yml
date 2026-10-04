@@ -6,6 +6,10 @@ on:
       - '.github/workflows/deadlock-ratking-gadsden-package.yml'
   workflow_dispatch:
 
+concurrency:
+  group: ratking-gadsden-raster-artifacts
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: write
@@ -21,7 +25,7 @@ jobs:
           gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100"             --jq '.artifacts[] | select(.name | startswith("ratking-gadsden-")) | .id' |
           while read -r artifact_id; do
             [ -z "$artifact_id" ] && continue
-            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$artifact_id"
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
           done
 
   raster-artifacts:
