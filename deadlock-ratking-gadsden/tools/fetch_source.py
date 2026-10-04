@@ -28,7 +28,6 @@ SOURCES = {
         "thumb_width": 3840,
         "api_raster_dimensions": (3840, 2412),
         "raster_dimensions": (3840, 2413),
-        "raster_sha1": "0dbd7794380d26a1b51d29e420a2251e5426b4f7",
     },
     "modern-gadsden": {
         "title": "File:Gadsden flag large.png",
@@ -55,6 +54,15 @@ def file_sha1(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def pixel_sha256(path: Path) -> str:
+    with Image.open(path) as img:
+        rgba = img.convert("RGBA")
+        h = hashlib.sha256()
+        h.update(f"{rgba.width}x{rgba.height}:RGBA".encode("ascii"))
+        h.update(rgba.tobytes())
+        return h.hexdigest()
 
 
 def urlopen_with_retry(req: urllib.request.Request, timeout: int):
@@ -157,19 +165,27 @@ def fetch(name: str, force: bool = False) -> None:
 
     expected_raster_dims = tuple(spec["raster_dimensions"])
     pinned_raster_sha1 = spec.get("raster_sha1")
+    pinned_pixel_sha256 = spec.get("pixel_sha256")
     dest.parent.mkdir(parents=True, exist_ok=True)
 
     if dest.exists() and not force:
         verify_png(dest, expected_raster_dims)
         digest = file_sha1(dest)
+        pixels = pixel_sha256(dest)
         if pinned_raster_sha1 and digest != pinned_raster_sha1:
             raise SystemExit(
                 f"{name}: local PNG SHA-1 is {digest}; expected {pinned_raster_sha1}. "
                 "Use --force to replace it."
             )
+        if pinned_pixel_sha256 and pixels != pinned_pixel_sha256:
+            raise SystemExit(
+                f"{name}: decoded pixel SHA-256 is {pixels}; expected {pinned_pixel_sha256}. "
+                "Use --force to replace it."
+            )
         print(
             f"{name}: using verified raster source: {dest} "
-            f"({expected_raster_dims[0]}x{expected_raster_dims[1]}, sha1={digest})"
+            f"({expected_raster_dims[0]}x{expected_raster_dims[1]}, "
+            f"sha1={digest}, pixel_sha256={pixels})"
         )
         return
 
@@ -186,15 +202,23 @@ def fetch(name: str, force: bool = False) -> None:
 
     verify_png(dest, expected_raster_dims)
     digest = file_sha1(dest)
+    pixels = pixel_sha256(dest)
     if pinned_raster_sha1 and digest != pinned_raster_sha1:
         dest.unlink(missing_ok=True)
         raise SystemExit(
             f"{name}: raster checksum mismatch: got {digest}, expected {pinned_raster_sha1}"
         )
+    if pinned_pixel_sha256 and pixels != pinned_pixel_sha256:
+        dest.unlink(missing_ok=True)
+        raise SystemExit(
+            f"{name}: decoded pixel checksum mismatch: got {pixels}, "
+            f"expected {pinned_pixel_sha256}"
+        )
 
     print(
         f"{name}: downloaded and verified {dest} "
-        f"({expected_raster_dims[0]}x{expected_raster_dims[1]}, sha1={digest})"
+        f"({expected_raster_dims[0]}x{expected_raster_dims[1]}, "
+        f"sha1={digest}, pixel_sha256={pixels})"
     )
 
 
