@@ -1,0 +1,8 @@
+.build/
+dist/*.vpk
+dist/*.zip
+dist/*-target.txt
+assets/previews/
+assets/source/*-4096.png
+__pycache__/
+*.pyc
