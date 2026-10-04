@@ -28,7 +28,7 @@ SOURCES = {
         "thumb_width": 3840,
         "api_raster_dimensions": (3840, 2412),
         "raster_dimensions": (3840, 2413),
-        # raster_sha1 is pinned after the rendered PNG has been validated in CI.
+        "raster_sha1": "0dbd7794380d26a1b51d29e420a2251e5426b4f7",
     },
     "modern-gadsden": {
         "title": "File:Gadsden flag large.png",
