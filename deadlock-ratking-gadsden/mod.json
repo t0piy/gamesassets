@@ -1,5 +1,5 @@
 {
-  "name": "Rat King — Gadsden Banner",
+  "name": "Rat King — Revolutionary Banners",
   "game": "Deadlock",
   "type": "texture-replacement",
   "hero": "Rat King",
@@ -7,7 +7,9 @@
   "default_variant": "modern-worn",
   "variants": [
     "modern-clean",
-    "modern-worn"
+    "modern-worn",
+    "join-or-die-clean",
+    "join-or-die-worn"
   ],
   "source_mode": "verified-raster",
   "build": "tools/build.ps1",
