@@ -1,25 +1,35 @@
 # Rat King — Gadsden Banner
 
-Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It replaces the banner art with a Gadsden-inspired flag while preserving the real in-game banner's dimensions, alpha mask, and part of its cloth/wear shading during the local build.
+Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. The mod now uses a real raster flag image from Wikimedia Commons as its source and only applies high-quality resampling, restrained wear, and the actual Rat King banner's local shading/alpha during build.
 
 > Deadlock is in active development. The Rat King asset path is discovered from your current game files at build time instead of baking in a fragile texture filename.
 
 ## Variants
 
-| Variant | Style | Source files |
+| Variant | Style | Source |
 |---|---|---|
-| `historical-original` | Original/historical-inspired, warmer ochre and brown snake | SVG + 4096px PNG |
-| `historical-worn` | Historical-inspired with heavier age/wear | SVG + 4096px PNG |
-| `modern-clean` | Modern/common high-contrast Gadsden treatment | SVG + 4096px PNG |
-| `modern-worn` | Modern treatment with in-world wear; **recommended default** | SVG + 4096px PNG |
+| `modern-clean` | Clean modern Gadsden image, upscaled from the exact published raster | Original PNG + 4096px PNG |
+| `modern-worn` | Same published raster with restrained wear before the game's own banner shading is applied | Original PNG + 4096px PNG |
 
-Canonical SVG masters are generated into `assets/source` by `tools/make_assets.py`. PNG previews and 4096px raster masters are generated reproducibly from those vectors, so Git stays lightweight while CI artifacts still contain lossless vector sources plus high-resolution rasters.
+`modern-worn` is the recommended default.
+
+The previous historical set was removed because the raster-only historical material I found was not good enough to justify a lower-fidelity result. This follows the project's original fallback rule: when the historical version cannot be made convincingly game-authentic, prefer the stronger modern source.
+
+## Raster source
+
+The source file is the exact published `Gadsden flag large.png` raster from Wikimedia Commons. `tools/fetch_source.py` downloads it and verifies its published SHA-1 before anything is processed.
+
+No artwork is redrawn. `tools/prepare_rasters.py` only:
+
+- resamples the exact source to a 4096px master with Lanczos;
+- applies mild sharpening to compensate for enlargement;
+- optionally adds restrained cloth/grime variation for `modern-worn`.
+
+The more important game-matching step happens later: `compose_texture.py` uses the banner texture extracted from your own current Deadlock install so the replacement inherits its real alpha silhouette and part of its cloth lighting/wear.
 
 ## Why there is no Valve texture in this repo
 
-The project intentionally does not redistribute the original Deadlock texture. `tools/build.ps1` extracts the current Rat King banner from **your own local Deadlock installation**, uses its exact canvas/alpha and a small amount of its wear shading, then compiles the replacement back to the same Source 2 virtual path.
-
-This also makes the mod more resilient to pre-release asset changes.
+The project intentionally does not redistribute the original Deadlock texture. `tools/build.ps1` extracts the current Rat King banner from **your own local Deadlock installation**, composes the raster flag into the same canvas, then compiles the replacement back to the same Source 2 virtual path.
 
 ## Local build (Windows)
 
@@ -28,7 +38,8 @@ Requirements:
 - Deadlock installed locally.
 - [Source 2 Viewer / ValveResourceFormat CLI](https://s2v.app/) (`Source2Viewer-CLI.exe`).
 - Reduced CSDK 12 with `resourcecompiler.exe`; `vpk.exe` is optional but enables a `.vpk` output.
-- Python 3 with CairoSVG + Pillow (`py -m pip install cairosvg pillow`).
+- Python 3 with Pillow (`py -m pip install pillow`).
+- Internet access on the first build if `assets/source/gadsden-original.png` has not already been fetched.
 
 Example:
 
@@ -40,7 +51,7 @@ pwsh -File .\tools\build.ps1 `
   -CsdkDir 'C:\Reduced_CSDK_12'
 ```
 
-The build script generates the chosen vector/raster source automatically if it is not present, then searches `models/heroes_wip/ratking/` for candidate `.vtex_c` files. If it cannot choose the banner texture unambiguously, it stops and prints candidates instead of guessing. Re-run with the exact path:
+The build script downloads/verifies the original raster when needed, prepares the requested 4K raster, then searches `models/heroes_wip/ratking/` for candidate `.vtex_c` files. If it cannot choose the banner texture unambiguously, it stops and prints candidates instead of guessing.
 
 ```powershell
 pwsh -File .\tools\build.ps1 ... -TexturePath 'models/heroes_wip/ratking/.../banner.vtex_c'
@@ -49,32 +60,30 @@ pwsh -File .\tools\build.ps1 ... -TexturePath 'models/heroes_wip/ratking/.../ban
 Outputs are written to `dist/`:
 
 - `ratking-gadsden-<variant>.vpk` when the CSDK provides `vpk.exe`;
-- `ratking-gadsden-<variant>-loose.zip` as a loose compiled fallback/inspection package;
-- `ratking-gadsden-<variant>-target.txt` recording the exact current game asset overridden.
-
-## Installation
-
-Use the `.vpk` with your normal Deadlock mod workflow/mod manager. Because the packed resource keeps the game's original virtual asset path, Source 2 resolves it as an override rather than requiring gameplay/script edits.
-
-If a Deadlock update changes the Rat King banner asset, rebuild: the discovery step is designed specifically for that case.
+- `ratking-gadsden-<variant>-loose.zip`;
+- `ratking-gadsden-<variant>-target.txt`.
 
 ## GitHub build artifacts
 
-The root workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` creates one artifact per variant containing the high-quality SVG, 4096px PNG, preview, license and source notes. A fully compiled Deadlock VPK is intentionally a **local** build because it depends on your installed Deadlock VPK and Reduced CSDK toolchain; CI does not fake or redistribute those proprietary inputs.
+The workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` produces one source artifact per current variant. Each artifact contains:
 
-## Artwork / fidelity
+- the exact downloaded source PNG;
+- the 4096px processed PNG;
+- a preview PNG;
+- source/license notes.
 
-The source art was redrawn as scalable vector artwork for this mod, using public historical/common Gadsden references. The local composition step is what makes it feel closer to the actual Rat King banner: it keeps the base texture's alpha and gently reuses its cloth luminance/wear instead of simply dropping a flat yellow rectangle onto the mesh.
+The workflow also cleans older Rat King source artifacts before uploading the current raster-only set.
 
-See [`SOURCES.md`](SOURCES.md) for references and licensing notes.
+A compiled Deadlock VPK remains a local build because it depends on your installed Deadlock VPK and Source 2 compilation tools.
 
 ## Project layout
 
 ```text
 tools/
+  fetch_source.py           # download + SHA-1 verify the exact raster source
+  prepare_rasters.py        # source raster → clean/worn 4096px variants
+  compose_texture.py        # inherit real Rat King alpha + cloth shading
   build.ps1                 # discover → extract → compose → compile → VPK
-  compose_texture.py        # preserves alpha + cloth/wear shading
-  make_assets.py            # generates 4 SVGs + 4K PNGs + previews
   package_sources.py        # CI artifact packager
 SOURCES.md
 LICENSE
@@ -86,17 +95,10 @@ Generated locally/CI:
 ```text
 assets/
   source/
-    historical-original.svg
-    historical-original-4096.png
-    historical-worn.svg
-    historical-worn-4096.png
-    modern-clean.svg
+    gadsden-original.png
     modern-clean-4096.png
-    modern-worn.svg
     modern-worn-4096.png
   previews/
-    historical-original.png
-    historical-worn.png
     modern-clean.png
     modern-worn.png
 ```
