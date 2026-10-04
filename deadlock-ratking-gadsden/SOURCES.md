@@ -13,7 +13,7 @@ The `original-*` variants use the same **Gadsden Flag (Accurate)** appearance th
 - Licensing: CC0 1.0 / public-domain dedication.
 - Raster actually downloaded by this project: the **3,840 × 2,413 PNG preview rendered by Wikimedia Commons**.\n- Pinned raster SHA-1: `0dbd7794380d26a1b51d29e420a2251e5426b4f7`.
 
-The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` asks the Commons API for its official 3,840-pixel PNG preview and validates the source metadata plus the downloaded PNG dimensions/checksum.
+The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` asks the Commons API for its official 3,840-pixel PNG preview, validates the source metadata and dimensions, and hashes the decoded RGBA pixels so PNG recompression cannot masquerade as a visual change.
 
 This restores the earlier original/accurate visual while keeping the entire mod pipeline raster-only.
 
