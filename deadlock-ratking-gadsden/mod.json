@@ -1,0 +1,16 @@
+{
+  "name": "Rat King — Gadsden Banner",
+  "game": "Deadlock",
+  "type": "texture-replacement",
+  "hero": "Rat King",
+  "ability": "Rule, Ratannia!",
+  "default_variant": "modern-worn",
+  "variants": [
+    "historical-original",
+    "historical-worn",
+    "modern-clean",
+    "modern-worn"
+  ],
+  "build": "tools/build.ps1",
+  "license": "MIT"
+}
