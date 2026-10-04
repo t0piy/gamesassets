@@ -70,7 +70,7 @@ The build script downloads/verifies the raster originals when needed, prepares t
 
 ## GitHub build artifacts
 
-The workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` has a **six-entry matrix** and publishes exactly one source artifact per variant:
+The workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` downloads and prepares the three source rasters once, then publishes **six separate source artifacts**, one per variant:
 
 - `ratking-banner-original-clean-sources`
 - `ratking-banner-original-worn-sources`
