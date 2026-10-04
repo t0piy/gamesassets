@@ -36,6 +36,8 @@ jobs:
       fail-fast: false
       matrix:
         variant:
+          - original-clean
+          - original-worn
           - modern-clean
           - modern-worn
           - join-or-die-clean
@@ -50,9 +52,9 @@ jobs:
           python-version: '3.12'
       - name: Install raster processing dependency
         run: python -m pip install --disable-pip-version-check pillow
-      - name: Fetch and verify raster originals
+      - name: Fetch and verify three raster originals
         run: python tools/fetch_source.py
-      - name: Prepare four 4096px raster variants
+      - name: Prepare six 4096px raster variants
         run: python tools/prepare_rasters.py
       - name: Package ${{ matrix.variant }}
         run: python tools/package_sources.py '${{ matrix.variant }}'
