@@ -1,4 +1,4 @@
-name: Rat King Gadsden source artifacts
+name: Rat King Gadsden raster artifacts
 on:
   push:
     paths:
@@ -6,12 +6,30 @@ on:
       - '.github/workflows/deadlock-ratking-gadsden-package.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
-  source-artifacts:
+  cleanup-old-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove previous Rat King artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100"             --jq '.artifacts[] | select(.name | startswith("ratking-gadsden-")) | .id' |
+          while read -r artifact_id; do
+            [ -z "$artifact_id" ] && continue
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/$artifact_id"
+          done
+
+  raster-artifacts:
+    needs: cleanup-old-artifacts
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        variant: [historical-original, historical-worn, modern-clean, modern-worn]
+        variant: [modern-clean, modern-worn]
     defaults:
       run:
         working-directory: deadlock-ratking-gadsden
@@ -20,10 +38,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install art build dependencies
-        run: python -m pip install --disable-pip-version-check cairosvg pillow
-      - name: Generate vector-derived raster masters
-        run: python tools/make_assets.py
+      - name: Install raster processing dependency
+        run: python -m pip install --disable-pip-version-check pillow
+      - name: Fetch and verify original raster
+        run: python tools/fetch_source.py
+      - name: Prepare 4096px raster variants
+        run: python tools/prepare_rasters.py
       - name: Package ${{ matrix.variant }}
         run: python tools/package_sources.py '${{ matrix.variant }}'
       - uses: actions/upload-artifact@v4
