@@ -6,11 +6,10 @@
   "ability": "Rule, Ratannia!",
   "default_variant": "modern-worn",
   "variants": [
-    "historical-original",
-    "historical-worn",
     "modern-clean",
     "modern-worn"
   ],
+  "source_mode": "verified-raster",
   "build": "tools/build.ps1",
   "license": "MIT"
 }
