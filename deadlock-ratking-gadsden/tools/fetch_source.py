@@ -26,7 +26,7 @@ SOURCES = {
         "source_dimensions": (1614, 1014),
         "source_sha1": "5ee2386154327e7be90b7ff48134fd4a0e5ad092",
         "thumb_width": 3840,
-        "raster_dimensions": (3840, 2412),
+        "raster_dimensions": (3840, 2413),
         # raster_sha1 is pinned after the rendered PNG has been validated in CI.
     },
     "modern-gadsden": {
