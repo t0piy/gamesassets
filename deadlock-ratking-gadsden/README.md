@@ -21,13 +21,13 @@ Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It
 
 The project deliberately uses raster originals instead of SVG reconstruction.
 
-- **Original Gadsden:** `Gadsden Flag.png`, a public-domain 1898 newspaper reproduction.
+- **Original Gadsden:** the 3840×2412 PNG rendered by Wikimedia Commons for `Gadsden Flag (Accurate)`, matching the original/accurate design used earlier.
 - **Modern Gadsden:** `Gadsden flag large.png`, the existing modern/common raster.
 - **Join, or Die:** `Benjamin Franklin - Join or Die.png`, a 3740×2696 archival lossless restoration.
 
-`tools/fetch_source.py` queries Wikimedia Commons metadata, verifies source dimensions and SHA-1, then downloads the exact original raster. The modern Gadsden and Join, or Die hashes are also pinned in the repository.
+`tools/fetch_source.py` queries Wikimedia Commons metadata and downloads only raster images. For the original/accurate Gadsden it requests the official 3840px PNG preview from Commons; the SVG master itself is never downloaded, stored or processed.
 
-`tools/prepare_rasters.py` creates all six 4096px masters. The historical Gadsden reproduction is color-mapped from archival paper/ink into ochre cloth/brown ink so it reads as a banner while preserving the raster detail; no vector redraw occurs.
+`tools/prepare_rasters.py` creates all six 4096px masters using raster-only resampling, sharpening and optional worn treatment; no vector redraw occurs.
 
 The final game-matching step happens in `compose_texture.py`: it uses the Rat King banner texture extracted from your own current Deadlock install so the replacement inherits the game's actual alpha silhouette and part of its cloth lighting/wear.
 
@@ -102,7 +102,7 @@ Generated locally/CI:
 ```text
 assets/
   source/
-    gadsden-historical-original.png
+    gadsden-accurate-original.png
     gadsden-original.png
     join-or-die-original.png
     original-clean-4096.png
