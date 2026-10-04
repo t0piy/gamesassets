@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('historical-original','historical-worn','modern-clean','modern-worn')]
+    [ValidateSet('modern-clean','modern-worn')]
     [string]$Variant = 'modern-worn',
     [Parameter(Mandatory=$true)][string]$DeadlockDir,
     [Parameter(Mandatory=$true)][string]$Source2ViewerCli,
@@ -49,12 +49,15 @@ if (-not (Test-Path $BasePng)) { throw "Source2Viewer did not export $BasePng" }
 
 $ArtPng = Join-Path $Root "assets\source\$Variant-4096.png"
 if (-not (Test-Path $ArtPng)) {
-    Write-Host "Generating vector-derived flag assets..." -ForegroundColor Cyan
-    python (Join-Path $PSScriptRoot 'make_assets.py')
+    Write-Host "Preparing verified raster source..." -ForegroundColor Cyan
+    python (Join-Path $PSScriptRoot 'fetch_source.py')
+    if ($LASTEXITCODE -ne 0) { throw "Raster source download/check failed." }
+    python (Join-Path $PSScriptRoot 'prepare_rasters.py')
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ArtPng)) {
-        throw "Flag asset generation failed. Install dependencies with: python -m pip install cairosvg pillow"
+        throw "Raster preparation failed. Install Pillow with: python -m pip install pillow"
     }
 }
+
 $Composed = Join-Path $Work 'banner.png'
 python (Join-Path $PSScriptRoot 'compose_texture.py') --base $BasePng --art $ArtPng --output $Composed
 if ($LASTEXITCODE -ne 0) { throw 'Texture composition failed.' }
