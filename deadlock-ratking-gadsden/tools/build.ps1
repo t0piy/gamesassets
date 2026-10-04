@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('modern-clean','modern-worn','join-or-die-clean','join-or-die-worn')]
+    [ValidateSet('original-clean','original-worn','modern-clean','modern-worn','join-or-die-clean','join-or-die-worn')]
     [string]$Variant = 'modern-worn',
     [Parameter(Mandatory=$true)][string]$DeadlockDir,
     [Parameter(Mandatory=$true)][string]$Source2ViewerCli,
