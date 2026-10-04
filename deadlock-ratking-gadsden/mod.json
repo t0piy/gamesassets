@@ -6,6 +6,8 @@
   "ability": "Rule, Ratannia!",
   "default_variant": "modern-worn",
   "variants": [
+    "original-clean",
+    "original-worn",
     "modern-clean",
     "modern-worn",
     "join-or-die-clean",
