@@ -1,30 +1,33 @@
 # Rat King — Revolutionary Banners
 
-Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It currently provides Gadsden and **Join, or Die** banner treatments using verified raster originals and the real Rat King banner's local alpha/lighting during build.
+Deadlock texture-replacement mod for Rat King's **Rule, Ratannia!** ultimate. It provides **six** raster-based variants across three designs: original/historical Gadsden, modern Gadsden, and **Join, or Die**.
 
 > Deadlock is in active development. The Rat King asset path is discovered from your current game files at build time instead of baking in a fragile texture filename.
 
-## Variants
+## Six variants
 
-| Variant | Design | Treatment | Source |
+| Variant | Design | Treatment | Raster source |
 |---|---|---|---|
-| `modern-clean` | Gadsden | clean | original raster + 4096px master |
-| `modern-worn` | Gadsden | restrained game-like wear | original raster + 4096px master |
-| `join-or-die-clean` | Join, or Die | clean archival print | original 3740×2696 PNG + 4096px master |
-| `join-or-die-worn` | Join, or Die | restrained game-like wear | original 3740×2696 PNG + 4096px master |
+| `original-clean` | historical Gadsden | archival/ochre clean | 1898 public-domain raster reproduction |
+| `original-worn` | historical Gadsden | archival/ochre + restrained game wear | same 1898 raster |
+| `modern-clean` | modern Gadsden | clean | `Gadsden flag large.png` |
+| `modern-worn` | modern Gadsden | restrained game wear | same modern raster |
+| `join-or-die-clean` | Join, or Die | clean archival print | 3740×2696 lossless PNG |
+| `join-or-die-worn` | Join, or Die | restrained game wear | same archival PNG |
 
-`modern-worn` remains the default; `join-or-die-worn` is the recommended Join, or Die version.
+`modern-worn` remains the default.
 
-## Raster sources
+## Raster-only sources
 
 The project deliberately uses raster originals instead of SVG reconstruction.
 
-- Gadsden: `Gadsden flag large.png`, verified by its published SHA-1.
-- Join, or Die: `Benjamin Franklin - Join or Die.png`, a 3740×2696 archival lossless restoration, also verified by its published SHA-1.
+- **Original Gadsden:** `Gadsden Flag.png`, a public-domain 1898 newspaper reproduction.
+- **Modern Gadsden:** `Gadsden flag large.png`, the existing modern/common raster.
+- **Join, or Die:** `Benjamin Franklin - Join or Die.png`, a 3740×2696 archival lossless restoration.
 
-`tools/fetch_source.py` downloads and checks both source images before processing. `tools/prepare_rasters.py` creates the 4096px clean/worn masters.
+`tools/fetch_source.py` queries Wikimedia Commons metadata, verifies source dimensions and SHA-1, then downloads the exact original raster. The modern Gadsden and Join, or Die hashes are also pinned in the repository.
 
-For Join, or Die, the complete historical print is preserved: the pipeline pads it to the flag canvas using the archival paper color instead of cropping the snake, colony labels, or title.
+`tools/prepare_rasters.py` creates all six 4096px masters. The historical Gadsden reproduction is color-mapped from archival paper/ink into ochre cloth/brown ink so it reads as a banner while preserving the raster detail; no vector redraw occurs.
 
 The final game-matching step happens in `compose_texture.py`: it uses the Rat King banner texture extracted from your own current Deadlock install so the replacement inherits the game's actual alpha silhouette and part of its cloth lighting/wear.
 
@@ -46,7 +49,7 @@ Example:
 
 ```powershell
 pwsh -File .\tools\build.ps1 `
-  -Variant join-or-die-worn `
+  -Variant original-worn `
   -DeadlockDir 'C:\Program Files (x86)\Steam\steamapps\common\Deadlock' `
   -Source2ViewerCli 'C:\Tools\Source2Viewer-CLI.exe' `
   -CsdkDir 'C:\Reduced_CSDK_12'
@@ -55,6 +58,8 @@ pwsh -File .\tools\build.ps1 `
 Supported values for `-Variant`:
 
 ```text
+original-clean
+original-worn
 modern-clean
 modern-worn
 join-or-die-clean
@@ -63,20 +68,12 @@ join-or-die-worn
 
 The build script downloads/verifies the raster originals when needed, prepares the requested 4K raster, then searches `models/heroes_wip/ratking/` for candidate `.vtex_c` files. If it cannot choose the banner texture unambiguously, it stops and prints candidates instead of guessing.
 
-```powershell
-pwsh -File .\tools\build.ps1 ... -TexturePath 'models/heroes_wip/ratking/.../banner.vtex_c'
-```
-
-Outputs are written to `dist/`:
-
-- `ratking-banner-<variant>.vpk` when the CSDK provides `vpk.exe`;
-- `ratking-banner-<variant>-loose.zip`;
-- `ratking-banner-<variant>-target.txt`.
-
 ## GitHub build artifacts
 
-The workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` has a four-entry matrix and publishes exactly one source artifact for each current variant:
+The workflow `.github/workflows/deadlock-ratking-gadsden-package.yml` has a **six-entry matrix** and publishes exactly one source artifact per variant:
 
+- `ratking-banner-original-clean-sources`
+- `ratking-banner-original-worn-sources`
 - `ratking-banner-modern-clean-sources`
 - `ratking-banner-modern-worn-sources`
 - `ratking-banner-join-or-die-clean-sources`
@@ -90,8 +87,8 @@ A compiled Deadlock VPK remains a local build because it depends on your install
 
 ```text
 tools/
-  fetch_source.py           # download + SHA-1 verify both raster originals
-  prepare_rasters.py        # originals → four clean/worn 4096px variants
+  fetch_source.py           # fetch + metadata/SHA-1 verification for 3 raster sources
+  prepare_rasters.py        # 3 originals → 6 clean/worn 4096px variants
   compose_texture.py        # inherit real Rat King alpha + cloth shading
   build.ps1                 # discover → extract → compose → compile → VPK
   package_sources.py        # CI artifact packager
@@ -105,13 +102,18 @@ Generated locally/CI:
 ```text
 assets/
   source/
+    gadsden-historical-original.png
     gadsden-original.png
     join-or-die-original.png
+    original-clean-4096.png
+    original-worn-4096.png
     modern-clean-4096.png
     modern-worn-4096.png
     join-or-die-clean-4096.png
     join-or-die-worn-4096.png
   previews/
+    original-clean.png
+    original-worn.png
     modern-clean.png
     modern-worn.png
     join-or-die-clean.png
