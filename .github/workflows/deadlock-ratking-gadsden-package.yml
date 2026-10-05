@@ -1,4 +1,4 @@
-name: Rat King Revolutionary Banner raster artifacts
+name: Rat King Revolutionary Banner DMM artifacts
 on:
   push:
     paths:
@@ -7,19 +7,24 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ratking-revolutionary-banner-raster-artifacts
+  group: ratking-revolutionary-banner-artifacts
   cancel-in-progress: true
 
 permissions:
   contents: read
   actions: write
 
+env:
+  DMM_CODEC_COMMIT: b0992fee210555a9cd2ea44f4ceba2a51983144d
+  RATKING_FLAG_TEXTURE: models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c
+
 jobs:
-  build-artifacts:
+  build-installable-artifacts:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: deadlock-ratking-gadsden
+
     steps:
       - name: Remove previous Rat King banner artifacts
         working-directory: .
@@ -39,17 +44,51 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install raster processing dependency
-        run: python -m pip install --disable-pip-version-check pillow
+      - name: Install raster and VPK validation dependencies
+        run: python -m pip install --disable-pip-version-check pillow vpk
 
       - name: Fetch and verify three raster originals
         run: python tools/fetch_source.py
 
-      - name: Prepare six 4096px raster variants
+      - name: Prepare six high-quality raster variants
         run: python tools/prepare_rasters.py
 
-      - name: Package all six variants
+      - name: Prepare exact 2048x1024 game texture payloads
+        run: python tools/prepare_dmm_payloads.py
+
+      - name: Fetch pinned Deadlock Mod Manager codec
+        working-directory: .
         run: |
+          set -euxo pipefail
+          rm -rf /tmp/dmm-codec
+          git init /tmp/dmm-codec
+          git -C /tmp/dmm-codec remote add origin https://github.com/deadlock-mod-manager/deadlock-mod-manager.git
+          git -C /tmp/dmm-codec fetch --depth 1 origin "$DMM_CODEC_COMMIT"
+          git -C /tmp/dmm-codec checkout --detach FETCH_HEAD
+          test -f /tmp/dmm-codec/packages/vpkmanager/Cargo.toml
+
+      - name: Compile minimal VPK builder
+        working-directory: .
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/ratking-vpk-builder
+          mkdir -p /tmp/ratking-vpk-builder/src
+          cat > /tmp/ratking-vpk-builder/Cargo.toml <<'EOF'
+          [package]
+          name = "ratking-vpk-builder"
+          version = "0.1.0"
+          edition = "2024"
+
+          [dependencies]
+          vpkmanager = { path = "/tmp/dmm-codec/packages/vpkmanager" }
+          EOF
+          cp deadlock-ratking-gadsden/tools/dmm_vpk_builder.rs /tmp/ratking-vpk-builder/src/main.rs
+          RUSTFLAGS='-C link-arg=-lstdc++' cargo build --release --manifest-path /tmp/ratking-vpk-builder/Cargo.toml
+
+      - name: Build six installable VPKs
+        run: |
+          set -euxo pipefail
+          rm -rf dist/installable
           for variant in \
             original-clean \
             original-worn \
@@ -58,47 +97,78 @@ jobs:
             join-or-die-clean \
             join-or-die-worn
           do
-            python tools/package_sources.py "$variant"
+            safe_name="${variant//-/_}"
+            out_dir="dist/installable/$variant"
+            mkdir -p "$out_dir"
+            /tmp/ratking-vpk-builder/target/release/ratking-vpk-builder \
+              "dist/dmm-textures/$variant.png" \
+              "$out_dir/ratking_banner_${safe_name}_dir.vpk" \
+              "/tmp/ratking-stage-$variant"
           done
 
-      - name: Upload original clean
-        uses: actions/upload-artifact@v4
-        with:
-          name: ratking-banner-original-clean-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-original-clean-sources.zip
-          if-no-files-found: error
+      - name: Validate VPKs exactly like an archive importer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import vpk
 
-      - name: Upload original worn
-        uses: actions/upload-artifact@v4
-        with:
-          name: ratking-banner-original-worn-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-original-worn-sources.zip
-          if-no-files-found: error
+          target = "models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c"
+          root = Path("dist/installable")
+          vpks = sorted(root.rglob("*.vpk"))
+          assert len(vpks) == 6, f"expected 6 VPKs, found {len(vpks)}"
 
-      - name: Upload modern clean
-        uses: actions/upload-artifact@v4
-        with:
-          name: ratking-banner-modern-clean-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-modern-clean-sources.zip
-          if-no-files-found: error
+          for path in vpks:
+              pak = vpk.open(str(path))
+              entries = list(pak)
+              assert entries == [target], f"{path}: unexpected entries: {entries}"
+              assert path.stat().st_size > 1024, f"{path}: suspiciously small"
+              print(f"VALID {path} -> {entries[0]} ({path.stat().st_size} bytes)")
+          PY
 
-      - name: Upload modern worn
+      - name: Upload original clean DMM mod
         uses: actions/upload-artifact@v4
         with:
-          name: ratking-banner-modern-worn-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-modern-worn-sources.zip
+          name: ratking-banner-original-clean-DMM
+          path: deadlock-ratking-gadsden/dist/installable/original-clean/*.vpk
           if-no-files-found: error
+          compression-level: 0
 
-      - name: Upload Join or Die clean
+      - name: Upload original worn DMM mod
         uses: actions/upload-artifact@v4
         with:
-          name: ratking-banner-join-or-die-clean-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-join-or-die-clean-sources.zip
+          name: ratking-banner-original-worn-DMM
+          path: deadlock-ratking-gadsden/dist/installable/original-worn/*.vpk
           if-no-files-found: error
+          compression-level: 0
 
-      - name: Upload Join or Die worn
+      - name: Upload modern clean DMM mod
         uses: actions/upload-artifact@v4
         with:
-          name: ratking-banner-join-or-die-worn-sources
-          path: deadlock-ratking-gadsden/dist/ratking-banner-join-or-die-worn-sources.zip
+          name: ratking-banner-modern-clean-DMM
+          path: deadlock-ratking-gadsden/dist/installable/modern-clean/*.vpk
           if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload modern worn DMM mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-modern-worn-DMM
+          path: deadlock-ratking-gadsden/dist/installable/modern-worn/*.vpk
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload Join or Die clean DMM mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-join-or-die-clean-DMM
+          path: deadlock-ratking-gadsden/dist/installable/join-or-die-clean/*.vpk
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload Join or Die worn DMM mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: ratking-banner-join-or-die-worn-DMM
+          path: deadlock-ratking-gadsden/dist/installable/join-or-die-worn/*.vpk
+          if-no-files-found: error
+          compression-level: 0
