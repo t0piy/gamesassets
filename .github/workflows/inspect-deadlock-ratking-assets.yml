@@ -1,0 +1,47 @@
+name: Inspect current Deadlock Rat King assets
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-deadlock-ratking-assets.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download latest DepotDownloader
+        run: |
+          set -euxo pipefail
+          python - <<'PY'
+          import json, urllib.request
+          req=urllib.request.Request(
+              'https://api.github.com/repos/SteamRE/DepotDownloader/releases/latest',
+              headers={'User-Agent':'RatKingAssetInspector/1.0'}
+          )
+          with urllib.request.urlopen(req) as r:
+              data=json.load(r)
+          asset=next(a for a in data['assets'] if a['name'].endswith('.zip'))
+          print(asset['browser_download_url'])
+          open('/tmp/depot_url','w').write(asset['browser_download_url'])
+          PY
+          curl -fL --retry 4 "$(cat /tmp/depot_url)" -o /tmp/depot.zip
+          mkdir -p /tmp/depotdl
+          unzip -o /tmp/depot.zip -d /tmp/depotdl
+          find /tmp/depotdl -maxdepth 2 -type f -printf '%p\n'
+
+      - name: Download Deadlock citadel VPK directory
+        run: |
+          set -euxo pipefail
+          printf '%s\n' 'game/citadel/pak01_dir.vpk' > /tmp/filelist.txt
+          dll="$(find /tmp/depotdl -iname 'DepotDownloader.dll' | head -n1)"
+          test -n "$dll"
+          dotnet "$dll"             -app 1422450             -depot 1422456             -filelist /tmp/filelist.txt             -dir /tmp/deadlock             -validate
+          ls -lh /tmp/deadlock/game/citadel/pak01_dir.vpk
+
+      - name: List Rat King asset paths from current VPK index
+        run: |
+          set -euxo pipefail
+          f=/tmp/deadlock/game/citadel/pak01_dir.vpk
+          echo '--- RATKING PATHS ---'
+          strings -a "$f" | grep -Ei 'ratking|ratannia|standard_bearer' | sort -u | tee /tmp/ratking-paths.txt
+          echo '--- RELEVANT MATERIAL/TEXTURE PATHS ---'
+          grep -Ei 'material|vmat|vtex|flag|banner|standard' /tmp/ratking-paths.txt || true
