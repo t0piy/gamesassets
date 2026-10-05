@@ -11,9 +11,9 @@ The `original-*` variants use the same **Gadsden Flag (Accurate)** appearance us
 - Source SHA-1: `5ee2386154327e7be90b7ff48134fd4a0e5ad092`
 - Author: BlinxTheKitty
 - Licensing: CC0 1.0 / public-domain dedication.
-- Raster downloaded by this project: the large PNG preview rendered by Wikimedia Commons (3840px wide; the served PNG decodes as 3840×2413).
+- Raster downloaded by this project: the large PNG preview rendered by Wikimedia Commons (3840px wide; served PNG decodes as 3840×2413).
 
-The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` asks the Commons API for its PNG preview and validates the source metadata and raster dimensions.
+The project does not download, store, convert, or process the SVG file. `tools/fetch_source.py` requests the PNG rendition and validates source metadata and raster dimensions.
 
 ## Modern Gadsden raster
 
@@ -32,36 +32,61 @@ The `join-or-die-*` variants use **Benjamin Franklin - Join or Die.png** from Wi
 - Pinned SHA-1: `7a79e6e41841667436d1ec2174b9caaa277248ad`
 - Licensing: public domain / Public Domain Mark.
 
-## Rat King VPK target
+## Rat King material and texture compatibility
 
-For interoperability testing, the project inspected the file structure of the public **Turkish Flag for Ratking** mod:
+For interoperability testing, the project inspected the public **Turkish Flag for Ratking** mod:
 
 - GameBanana: https://gamebanana.com/mods/723299
-- Inspection purpose: determine the resource path and texture parameters used by a working Rat King banner replacement.
-- No image, material, VTEX, VPK payload, or other compiled bytes from that mod are included in this project.
+- Purpose: establish the resource layout and on-wire texture parameters of a banner replacement known to work in Deadlock.
+- The mod's flag artwork is not redistributed.
 
-The working mod confirmed this color-texture target:
+The working VPK contains the Rat King material and generated texture resources. Inspection of its material established:
 
 ```text
-models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c
+models/heroes_wip/ratking/materials/ratking_ratannia_flag.vmat_c
 ```
 
-Technical observations from the working replacement texture:
+Material properties relevant to this project:
 
-- stored/actual dimensions: 2048 × 1024
-- format: BC7
-- mip levels: 9
-- texture flags: 0
+- shader: `pbr.vfx`
+- `F_ALPHA_TEST = 1`
+- `F_DISABLE_NPR_OUTLINE = 1`
+- `F_RENDER_BACKFACES = 1`
+- `F_USE_NPR_LIGHTING = 1`
+- `F_USE_STATUS_EFFECTS_PROXY = 1`
+- alpha-test reference: 0.5
 
-The DMM-ready artifacts in this project create a **new** VTEX from this project's raster artwork at the same 2048×1024 canvas and pack only that replacement path into a fresh VPK. No reference-mod or Valve asset is redistributed.
+Its color texture is:
+
+- 2048 × 1024
+- BC7
+- 9 mip levels
+- flags 0
+
+### Current DMM build strategy
+
+The first version of this repository's DMM artifact only replaced a color VTEX. That VPK was structurally valid but was not sufficient in the user's in-game test.
+
+The current builder therefore:
+
+1. prepares this project's raster artwork;
+2. uses the working color resource only as a **technical container template** so output retains BC7, the full 9-mip chain, and the banner alpha;
+3. fully replaces the template's color pixels with this project's artwork;
+4. byte-faithfully patches the working Rat King `pbr.vfx` material's DATA texture binding so `g_tColor` points to a new per-variant texture path;
+5. redirects the donor material's generated auxiliary texture slots to stable game defaults:
+   - `g_tNormalRoughness` → `materials/default/default_normal_tga_7be61377.vtex`
+   - `g_tNprTransmissiveColor` → `materials/default/default_black_mask_tga_e7be3cc.vtex`
+   - `g_tTintMaskRimLightMask` → `materials/default/default_mask_tga_8d0774e6.vtex`
+6. packs exactly two entries into the final VPK: the patched Rat King material and the generated color VTEX;
+7. validates the result with Deadlock Mod Manager's own VPK parser before publishing.
+
+The material patch uses the pinned open-source `morphic` material tooling from `Slush97/vpkmerge`, whose compiled-material path preserves the engine-accepted v5 layout/non-DATA shader blocks rather than generating a simplified material that can fall back to an error shader.
 
 ## Deadlock Mod Manager compatibility
 
-Deadlock Mod Manager's local-import code accepts a raw `.vpk` or an archive containing at least one `.vpk`. A source-only ZIP is intentionally not an installable mod.
+Deadlock Mod Manager accepts a raw `.vpk` or an archive containing at least one `.vpk`. The current workflow publishes six `*-DMM` artifacts, each containing one generated `*_dir.vpk`.
 
-The GitHub workflow therefore publishes six `*-DMM` artifacts, each containing a generated `*_dir.vpk`.
-
-The VPK/Source 2 writing step uses a pinned revision of the open-source `vpkmanager` package from Deadlock Mod Manager during CI. The dependency is fetched at build time; the generated artifact contains only this project's one-file VPK.
+Older `*-sources` artifacts are not installable mods. Older one-texture `*-DMM` artifacts are also superseded by the current material-bound build.
 
 ## Raster treatment
 
@@ -71,7 +96,7 @@ The VPK/Source 2 writing step uses a pinned revision of the open-source `vpkmana
 - mild sharpening appropriate to each source;
 - optional restrained cloth/grime treatment for `*-worn` variants.
 
-`tools/prepare_dmm_payloads.py` then resizes the selected prepared art to the real Rat King flag texture canvas, 2048×1024.
+`tools/prepare_dmm_payloads.py` then prepares a 2048×1024 raster for the game texture slot.
 
 ## Local Source 2 build
 
