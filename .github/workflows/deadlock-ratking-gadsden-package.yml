@@ -16,7 +16,7 @@ permissions:
 
 env:
   DMM_CODEC_COMMIT: b0992fee210555a9cd2ea44f4ceba2a51983144d
-  RATKING_FLAG_TEXTURE: models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c
+  MORPHIC_COMMIT: f3bf777a04f08aa03721e75988ecd7fbb986734b
 
 jobs:
   build-installable-artifacts:
@@ -56,6 +56,36 @@ jobs:
       - name: Prepare exact 2048x1024 game texture payloads
         run: python tools/prepare_dmm_payloads.py
 
+      - name: Fetch technical Rat King material/texture donor
+        working-directory: .
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/ratking-donor /tmp/ratking-reference.zip
+          mkdir -p /tmp/ratking-donor /tmp/ratking-reference-unpacked
+          curl -fL --retry 5 --retry-delay 2 -A 'Mozilla/5.0' \
+            'https://gamebanana.com/dl/1835103' \
+            -o /tmp/ratking-reference.zip
+          unzip -o /tmp/ratking-reference.zip -d /tmp/ratking-reference-unpacked
+          python - <<'PY'
+          from pathlib import Path
+          import vpk
+
+          pak_path = next(Path('/tmp/ratking-reference-unpacked').glob('*.vpk'))
+          pak = vpk.open(str(pak_path))
+          wanted = {
+              'models/heroes_wip/ratking/materials/ratking_ratannia_flag.vmat_c':
+                  '/tmp/ratking-donor/ratking_ratannia_flag.vmat_c',
+              'models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c':
+                  '/tmp/ratking-donor/ratking_ratannia_flag_color.vtex_c',
+          }
+          for entry, out in wanted.items():
+              data = pak.get_file(entry).read()
+              Path(out).write_bytes(data)
+              print(f'DONOR {entry} -> {out} ({len(data)} bytes)')
+          PY
+          test -s /tmp/ratking-donor/ratking_ratannia_flag.vmat_c
+          test -s /tmp/ratking-donor/ratking_ratannia_flag_color.vtex_c
+
       - name: Fetch pinned Deadlock Mod Manager codec
         working-directory: .
         run: |
@@ -66,6 +96,17 @@ jobs:
           git -C /tmp/dmm-codec fetch --depth 1 origin "$DMM_CODEC_COMMIT"
           git -C /tmp/dmm-codec checkout --detach FETCH_HEAD
           test -f /tmp/dmm-codec/packages/vpkmanager/Cargo.toml
+
+      - name: Fetch pinned morphic material compiler
+        working-directory: .
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/vpkmerge
+          git init /tmp/vpkmerge
+          git -C /tmp/vpkmerge remote add origin https://github.com/Slush97/vpkmerge.git
+          git -C /tmp/vpkmerge fetch --depth 1 origin "$MORPHIC_COMMIT"
+          git -C /tmp/vpkmerge checkout --detach FETCH_HEAD
+          test -f /tmp/vpkmerge/morphic/Cargo.toml
 
       - name: Compile minimal VPK builder
         working-directory: .
@@ -82,6 +123,8 @@ jobs:
           [dependencies]
           vpkmanager = { path = "/tmp/dmm-codec/packages/vpkmanager" }
           vpk-parser = { path = "/tmp/dmm-codec/packages/vpk-parser" }
+          morphic = { path = "/tmp/vpkmerge/morphic" }
+          image = { version = "0.25", default-features = false, features = ["png"] }
           EOF
           cp deadlock-ratking-gadsden/tools/dmm_vpk_builder.rs /tmp/ratking-vpk-builder/src/main.rs
           RUSTFLAGS='-C link-arg=-lstdc++' cargo build --release --manifest-path /tmp/ratking-vpk-builder/Cargo.toml
@@ -102,7 +145,10 @@ jobs:
             out_dir="dist/installable/$variant"
             mkdir -p "$out_dir"
             /tmp/ratking-vpk-builder/target/release/ratking-vpk-builder \
+              "$variant" \
               "dist/dmm-textures/$variant.png" \
+              "/tmp/ratking-donor/ratking_ratannia_flag_color.vtex_c" \
+              "/tmp/ratking-donor/ratking_ratannia_flag.vmat_c" \
               "$out_dir/ratking_banner_${safe_name}_dir.vpk" \
               "/tmp/ratking-stage-$variant"
           done
