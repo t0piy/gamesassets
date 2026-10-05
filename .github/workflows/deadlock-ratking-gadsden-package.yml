@@ -80,7 +80,8 @@ jobs:
           edition = "2024"
 
           [dependencies]
-          vpkmanager = { path = "/tmp/dmm-codec/packages/vpkmanager" }\n          vpk-parser = { path = "/tmp/dmm-codec/packages/vpk-parser" }
+          vpkmanager = { path = "/tmp/dmm-codec/packages/vpkmanager" }
+          vpk-parser = { path = "/tmp/dmm-codec/packages/vpk-parser" }
           EOF
           cp deadlock-ratking-gadsden/tools/dmm_vpk_builder.rs /tmp/ratking-vpk-builder/src/main.rs
           RUSTFLAGS='-C link-arg=-lstdc++' cargo build --release --manifest-path /tmp/ratking-vpk-builder/Cargo.toml
