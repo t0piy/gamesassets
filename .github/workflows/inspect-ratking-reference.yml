@@ -66,4 +66,4 @@ jobs:
               Ok(())
           }
           EOF
-          cargo run --release --manifest-path /tmp/inspect/Cargo.toml
+          RUSTFLAGS='-C link-arg=-lstdc++' cargo run --release --manifest-path /tmp/inspect/Cargo.toml
