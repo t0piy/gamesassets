@@ -12,37 +12,58 @@ jobs:
         run: |
           set -euxo pipefail
           curl -fL --retry 5 --retry-delay 2 -A 'Mozilla/5.0'             'https://gamebanana.com/dl/1835103'             -o /tmp/reference_download
-          file /tmp/reference_download
-          ls -lh /tmp/reference_download
-
-      - name: Inspect archive and VPK entries
-        run: |
-          set -euxo pipefail
           mkdir -p /tmp/ref
-          if unzip -t /tmp/reference_download >/dev/null 2>&1; then
-            unzip -o /tmp/reference_download -d /tmp/ref
-          else
-            cp /tmp/reference_download /tmp/ref/reference.vpk
-          fi
-          find /tmp/ref -maxdepth 4 -type f -printf '%p %s bytes\n'
-          echo '--- archive strings mentioning ratking/material/vtex/banner/flag ---'
-          find /tmp/ref -type f \( -iname '*.vpk' -o -iname '*.zip' \) -print0 | while IFS= read -r -d '' f; do
-            echo "### $f"
-            strings -a "$f" | grep -Ei 'ratking|materials|vtex|banner|flag|standard' | head -n 300 || true
-          done
+          unzip -o /tmp/reference_download -d /tmp/ref
+          ls -lh /tmp/ref
 
-      - name: Parse VPK directory with Python package
+      - name: Extract target VTEX from VPK
         run: |
           python -m pip install --disable-pip-version-check vpk
           python - <<'PY'
           from pathlib import Path
           import vpk
-          for p in Path('/tmp/ref').rglob('*.vpk'):
-              print('VPK', p)
-              try:
-                  pak = vpk.open(str(p))
-                  for name in pak:
-                      print('ENTRY', name)
-              except Exception as e:
-                  print('PARSE_ERROR', repr(e))
+          pak_path = next(Path('/tmp/ref').glob('*.vpk'))
+          pak = vpk.open(str(pak_path))
+          target='models/heroes_wip/ratking/materials/ratking_ratannia_flag_color_png_155b4b23.vtex_c'
+          entry=pak.get_file(target)
+          data=entry.read()
+          Path('/tmp/reference_color.vtex_c').write_bytes(data)
+          print('TARGET_BYTES',len(data))
+          print('ALL_ENTRIES')
+          for name in pak:
+              print(name)
           PY
+
+      - name: Inspect target VTEX with Deadlock Mod Manager codec
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 https://github.com/deadlock-mod-manager/deadlock-mod-manager.git /tmp/dmm
+          mkdir -p /tmp/inspect/src
+          cat > /tmp/inspect/Cargo.toml <<'EOF'
+          [package]
+          name = "inspect-vtex"
+          version = "0.1.0"
+          edition = "2024"
+
+          [dependencies]
+          vpkmanager = { path = "/tmp/dmm/packages/vpkmanager" }
+          EOF
+          cat > /tmp/inspect/src/main.rs <<'EOF'
+          use std::fs;
+          fn main() -> Result<(), Box<dyn std::error::Error>> {
+              let bytes=fs::read("/tmp/reference_color.vtex_c")?;
+              let info=vpkmanager::source2::inspect(&bytes)?;
+              println!("FORMAT={:?}",info.format);
+              println!("WIDTH={}",info.width);
+              println!("HEIGHT={}",info.height);
+              println!("ACTUAL_WIDTH={}",info.actual_width);
+              println!("ACTUAL_HEIGHT={}",info.actual_height);
+              println!("MIPS={}",info.mip_count);
+              println!("FLAGS_BITS={}",info.flags.bits());
+              println!("FLAGS_DEBUG={:?}",info.flags);
+              let img=vpkmanager::source2::decode(&bytes)?;
+              println!("DECODED={}x{}",img.width,img.height);
+              Ok(())
+          }
+          EOF
+          cargo run --release --manifest-path /tmp/inspect/Cargo.toml
