@@ -1,0 +1,48 @@
+name: Inspect Rat King flag reference
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-ratking-reference.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download public working Rat King flag mod
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2 -A 'Mozilla/5.0'             'https://gamebanana.com/dl/1835103'             -o /tmp/reference_download
+          file /tmp/reference_download
+          ls -lh /tmp/reference_download
+
+      - name: Inspect archive and VPK entries
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/ref
+          if unzip -t /tmp/reference_download >/dev/null 2>&1; then
+            unzip -o /tmp/reference_download -d /tmp/ref
+          else
+            cp /tmp/reference_download /tmp/ref/reference.vpk
+          fi
+          find /tmp/ref -maxdepth 4 -type f -printf '%p %s bytes\n'
+          echo '--- archive strings mentioning ratking/material/vtex/banner/flag ---'
+          find /tmp/ref -type f \( -iname '*.vpk' -o -iname '*.zip' \) -print0 | while IFS= read -r -d '' f; do
+            echo "### $f"
+            strings -a "$f" | grep -Ei 'ratking|materials|vtex|banner|flag|standard' | head -n 300 || true
+          done
+
+      - name: Parse VPK directory with Python package
+        run: |
+          python -m pip install --disable-pip-version-check vpk
+          python - <<'PY'
+          from pathlib import Path
+          import vpk
+          for p in Path('/tmp/ref').rglob('*.vpk'):
+              print('VPK', p)
+              try:
+                  pak = vpk.open(str(p))
+                  for name in pak:
+                      print('ENTRY', name)
+              except Exception as e:
+                  print('PARSE_ERROR', repr(e))
+          PY
