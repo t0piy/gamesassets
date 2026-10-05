@@ -50,8 +50,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(format!("expected 1 VPK entry, packed {count}").into());
     }
 
+    // Validate with the exact parser used by Deadlock Mod Manager rather than
+    // older third-party VPK readers that do not understand DMM's VPK v2 hashes.
+    let entries = vpk_parser::VpkParser::parse_directory_from_file(&output_vpk)?;
+    if entries.len() != 1 || entries[0].full_path != TARGET {
+        return Err(format!(
+            "DMM parser saw unexpected VPK entries: {:?}",
+            entries.iter().map(|e| e.full_path.as_str()).collect::<Vec<_>>()
+        ).into());
+    }
+
     println!(
-        "built {} from {} -> {} ({}x{}, {:?}, flags={:?})",
+        "built+validated {} from {} -> {} ({}x{}, {:?}, flags={:?})",
         output_vpk.display(),
         png_path.display(),
         TARGET,
